@@ -1,4 +1,4 @@
-from mongoengine import Document, StringField, IntField, DateTimeField, ReferenceField, BooleanField
+from mongoengine import Document, StringField, IntField, DateTimeField, ReferenceField, BooleanField, NULLIFY
 from datetime import datetime, timezone
 from Models.adminModels import Admin_And_User
 from Models.landModels import Land
@@ -12,8 +12,8 @@ class Enquiry(Document):
     # User who made the enquiry (optional for guest enquiries)
     user = ReferenceField(Admin_And_User, required=False)
     
-    # Land being enquired about
-    land = ReferenceField(Land, required=True)
+    # Land being enquired about; nullify reference if land gets deleted to avoid broken DBRef
+    land = ReferenceField(Land, required=False, reverse_delete_rule=NULLIFY)
     
     # Flag to identify guest enquiries
     is_guest = BooleanField(default=False)
