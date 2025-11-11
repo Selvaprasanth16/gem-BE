@@ -4,6 +4,8 @@ from datetime import datetime
 class Admin_And_User(Document):
     username = StringField(required=True, unique=True)
     email = StringField(required=True, unique=True)
+    # Optional mobile number for login via phone. Unique when present.
+    phone = StringField(required=False, unique=True, sparse=True)
     password = StringField(required=True)
     role = StringField(required=True, choices=['admin', 'user'])
     auth_token = StringField()
@@ -17,6 +19,7 @@ class Admin_And_User(Document):
             "id": str(self.id),
             "username": self.username,
             "email": self.email,
+            "phone": self.phone,
             "role": self.role,
             "full_name": self.full_name,
             "created_at": self.created_at.isoformat()

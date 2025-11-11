@@ -4,19 +4,23 @@ from datetime import datetime, timedelta
 from werkzeug.security import check_password_hash
 import jwt
 import os
+from mongoengine.queryset.visitor import Q
 
 class LoginController:
     def login():
         try:
             data = request.json
-            username = data.get('username')
+            # Support login ONLY via email or phone (no username)
+            identifier = data.get('identifier') or data.get('email') or data.get('phone')
             password = data.get('password')
             
-            if not username or not password:
-                return jsonify({"error": "Username and password are required"}), 400
+            if not identifier or not password:
+                return jsonify({"error": "Email or mobile and password are required"}), 400
             
-            # Find user by username
-            user = Admin_And_User.objects(username=username).first()
+            # Find user by email OR phone only
+            user = Admin_And_User.objects(
+                Q(email=identifier) | Q(phone=identifier)
+            ).first()
             if not user:
                 return jsonify({"error": "Invalid credentials"}), 401
             
@@ -45,6 +49,7 @@ class LoginController:
                     "id": str(user.id),
                     "username": user.username,
                     "email": user.email,
+                    "phone": getattr(user, 'phone', None),
                     "role": user.role,
                     "full_name": user.full_name
                 }

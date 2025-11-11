@@ -11,17 +11,17 @@ class AdminController:
             # Check if user is admin
             token = request.headers.get('token')
             if not token:
-                return jsonify({"error": "Token required"}), 401
+                return jsonify({"success": False, "error": "Token required"}), 401
             
             # Verify token and check role
             try:
                 payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=[os.getenv("JWT_ALGORITHM", "HS256")])
                 if payload.get('role') != 'admin':
-                    return jsonify({"error": "Admin access required"}), 403
+                    return jsonify({"success": False, "error": "Admin access required"}), 403
             except jwt.ExpiredSignatureError:
-                return jsonify({"error": "Token expired"}), 401
+                return jsonify({"success": False, "error": "Token expired"}), 401
             except jwt.InvalidTokenError:
-                return jsonify({"error": "Invalid token"}), 401
+                return jsonify({"success": False, "error": "Invalid token"}), 401
             
             # Get all users
             users = Admin_And_User.objects()
@@ -33,13 +33,13 @@ class AdminController:
                     "email": user.email,
                     "role": user.role,
                     "full_name": user.full_name,
-                    "created_at": user.created_at.isoformat()
+                    "created_at": user.created_at.isoformat() if user.created_at else None
                 })
             
-            return jsonify(users_list), 200
+            return jsonify({"success": True, "data": {"users": users_list}}), 200
             
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"success": False, "error": str(e)}), 500
     
     def get_dashboard_stats():
         try:
