@@ -87,5 +87,5 @@ app.register_blueprint(land_admin_bp, url_prefix='/api/admin/lands')
 app.register_blueprint(image_upload_bp)  # Already has url_prefix in blueprint
 
 if __name__ == '__main__':
-        app.run(debug=True)
-
+port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
