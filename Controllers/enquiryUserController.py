@@ -65,6 +65,18 @@ class EnquiryUserController:
             if data['enquiry_type'] not in valid_types:
                 return jsonify({"error": f"enquiry_type must be one of: {', '.join(valid_types)}"}), 400
             
+            # Prevent duplicate enquiry for same user and land
+            try:
+                existing = Enquiry.objects(user=user, land=land, status__ne='cancelled').first()
+            except Exception:
+                existing = None
+            if existing:
+                return jsonify({
+                    "duplicate": True,
+                    "message": "ALREADY_INTERESTED",
+                    "enquiry": existing.to_json()
+                }), 200
+
             # Create enquiry
             enquiry_data = {
                 'user': user,
@@ -338,6 +350,18 @@ class EnquiryUserController:
             if land.status != 'available':
                 return jsonify({"error": "This land is not available for enquiry"}), 400
             
+            # Prevent duplicate guest enquiry for same land and phone
+            try:
+                existing = Enquiry.objects(land=land, contact_phone=data['contact_phone'], is_guest=True, status__ne='cancelled').first()
+            except Exception:
+                existing = None
+            if existing:
+                return jsonify({
+                    "duplicate": True,
+                    "message": "ALREADY_INTERESTED",
+                    "enquiry": existing.to_json()
+                }), 200
+
             # Create guest enquiry
             enquiry_data = {
                 'user': None,
