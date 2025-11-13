@@ -1,4 +1,4 @@
-from mongoengine import Document, StringField, IntField, ListField, DateTimeField, ReferenceField, FloatField
+from mongoengine import Document, StringField, IntField, ListField, DateTimeField, ReferenceField, FloatField, BooleanField
 from datetime import datetime, timezone
 from Models.adminModels import Admin_And_User
 
@@ -29,6 +29,13 @@ class Land(Document):
     latitude = FloatField()
     longitude = FloatField()
 
+    # Urgent sale flags (managed in Lands, used by landing page)
+    is_urgent = BooleanField(default=False)
+    urgent_priority = IntField(default=0)
+    # urgent_title = StringField()
+    # urgent_description = StringField()
+    # urgent_image_url = StringField()
+
     def to_json(self):
         return {
             "id": str(self.id),
@@ -51,6 +58,11 @@ class Land(Document):
             "contact_email": self.contact_email,
             "latitude": self.latitude,
             "longitude": self.longitude,
+            "is_urgent": bool(self.is_urgent),
+            "urgent_priority": self.urgent_priority,
+            "urgent_title": self.urgent_title or self.title,
+            "urgent_description": self.urgent_description,
+            "urgent_image_url": self.urgent_image_url or ((self.images_urls[0]) if (self.images_urls and len(self.images_urls)>0) else None),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }

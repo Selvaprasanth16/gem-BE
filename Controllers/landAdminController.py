@@ -66,6 +66,52 @@ class LandAdminController:
                 return jsonify({"success": False, "error": "Admin user not found"}), 404
             
             # Create land
+            # Normalize features to list of allowed values
+            allowed_features = {'residential', 'commercial', 'agricultural', 'Coconut Farm'}
+            raw_features = data.get('features', [])
+            if isinstance(raw_features, str):
+                raw_features = [raw_features]
+            elif not isinstance(raw_features, list):
+                raw_features = []
+            # Map common variants
+            feature_map = {
+                'coconut land': 'Coconut Farm',
+                'coconut farm': 'Coconut Farm',
+                'farm': 'Coconut Farm',
+            }
+            norm_features = []
+            for f in raw_features:
+                if not isinstance(f, str):
+                    continue
+                key = f.strip()
+                mapped = feature_map.get(key.lower(), key)
+                if mapped in allowed_features:
+                    norm_features.append(mapped)
+
+            # Parse coordinates if provided (supports "lat,lon" or Google Maps URL containing @lat,lon or q=lat,lon)
+            def parse_coordinates(val):
+                try:
+                    if not val or not isinstance(val, str):
+                        return None, None
+                    s = val.strip()
+                    # If full URL, try to find @lat,lon or q=lat,lon
+                    if 'http' in s:
+                        import re
+                        m = re.search(r'@\s*([-+]?\d+\.?\d*)\s*,\s*([-+]?\d+\.?\d*)', s)
+                        if not m:
+                            m = re.search(r'[?&]q=\s*([-+]?\d+\.?\d*)\s*,\s*([-+]?\d+\.?\d*)', s)
+                        if m:
+                            return float(m.group(1)), float(m.group(2))
+                    # plain "lat,lon"
+                    if ',' in s:
+                        lat_s, lon_s = [p.strip() for p in s.split(',', 1)]
+                        return float(lat_s), float(lon_s)
+                except Exception:
+                    return None, None
+                return None, None
+
+            coord_lat, coord_lon = parse_coordinates(data.get('coordinates'))
+
             land_data = {
                 'user': admin_user,
                 'title': data['title'],
@@ -77,11 +123,17 @@ class LandAdminController:
                 'address': data['address'],
                 'status': 'available',
                 'images_urls': data.get('images_urls', []),
-                'features': data.get('features', []),
+                'features': norm_features,
                 'contact_phone': data.get('contact_phone', ''),
                 'contact_email': data.get('contact_email', ''),
-                'latitude': data.get('latitude'),
-                'longitude': data.get('longitude'),
+                'latitude': data.get('latitude') if data.get('latitude') is not None else coord_lat,
+                'longitude': data.get('longitude') if data.get('longitude') is not None else coord_lon,
+                # urgent
+                'is_urgent': True if (str(data.get('is_urgent')).lower() in ['true','1','yes']) else False,
+                'urgent_priority': int(data.get('urgent_priority', 0) or 0),
+                'urgent_title': data.get('urgent_title'),
+                'urgent_description': data.get('urgent_description'),
+                'urgent_image_url': data.get('urgent_image_url'),
                 'created_at': datetime.utcnow(),
                 'updated_at': datetime.utcnow()
             }
@@ -165,8 +217,9 @@ class LandAdminController:
             if error:
                 return error
             
-            data = request.json
-            land_id = data.get('land_id')
+            data = request.json or {}
+            # Prefer query param (?id=) but support legacy JSON body land_id
+            land_id = request.args.get('id') or data.get('land_id')
             new_status = data.get('status')
             
             if not land_id or not new_status:
@@ -208,11 +261,11 @@ class LandAdminController:
             if error:
                 return error
             
-            data = request.json
-            land_id = data.get('land_id')
+            data = request.json or {}
+            land_id = request.args.get('id') or data.get('land_id')
             
             if not land_id:
-                return jsonify({"success": False, "error": "land_id is required"}), 400
+                return jsonify({"success": False, "error": "Missing land id. Pass ?id=<land_id> in query (preferred) or include 'land_id' in body for backward compatibility."}), 400
             
             # Get land
             land = Land.objects(id=land_id).first()
@@ -248,11 +301,69 @@ class LandAdminController:
             if 'images_urls' in data:
                 land.images_urls = data['images_urls']
             if 'features' in data:
-                land.features = data['features']
+                allowed_features = {'residential', 'commercial', 'agricultural', 'Coconut Farm'}
+                raw = data.get('features')
+                if isinstance(raw, str):
+                    raw = [raw]
+                elif not isinstance(raw, list):
+                    raw = []
+                feature_map = {
+                    'coconut land': 'Coconut Farm',
+                    'coconut farm': 'Coconut Farm',
+                    'farm': 'Coconut Farm',
+                }
+                norm = []
+                for f in raw:
+                    if not isinstance(f, str):
+                        continue
+                    key = f.strip()
+                    mapped = feature_map.get(key.lower(), key)
+                    if mapped in allowed_features:
+                        norm.append(mapped)
+                land.features = norm
             if 'contact_phone' in data:
                 land.contact_phone = data['contact_phone']
             if 'contact_email' in data:
                 land.contact_email = data['contact_email']
+            # Urgent fields
+            if 'is_urgent' in data:
+                land.is_urgent = True if (str(data.get('is_urgent')).lower() in ['true','1','yes']) else False
+            if 'urgent_priority' in data and data.get('urgent_priority') is not None:
+                try:
+                    land.urgent_priority = int(data.get('urgent_priority'))
+                except Exception:
+                    pass
+            if 'urgent_title' in data:
+                land.urgent_title = data.get('urgent_title')
+            if 'urgent_description' in data:
+                land.urgent_description = data.get('urgent_description')
+            if 'urgent_image_url' in data:
+                land.urgent_image_url = data.get('urgent_image_url')
+            # Coordinates parsing for update
+            def parse_coordinates(val):
+                try:
+                    if not val or not isinstance(val, str):
+                        return None, None
+                    s = val.strip()
+                    if 'http' in s:
+                        import re
+                        m = re.search(r'@\s*([-+]?\d+\.?\d*)\s*,\s*([-+]?\d+\.?\d*)', s)
+                        if not m:
+                            m = re.search(r'[?&]q=\s*([-+]?\d+\.?\d*)\s*,\s*([-+]?\d+\.?\d*)', s)
+                        if m:
+                            return float(m.group(1)), float(m.group(2))
+                    if ',' in s:
+                        lat_s, lon_s = [p.strip() for p in s.split(',', 1)]
+                        return float(lat_s), float(lon_s)
+                except Exception:
+                    return None, None
+                return None, None
+
+            if 'coordinates' in data and data.get('coordinates'):
+                lat, lon = parse_coordinates(data.get('coordinates'))
+                if lat is not None and lon is not None:
+                    land.latitude = lat
+                    land.longitude = lon
             if 'latitude' in data:
                 land.latitude = data['latitude']
             if 'longitude' in data:

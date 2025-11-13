@@ -12,6 +12,7 @@ from Routes.enquiryUserRoutes import enquiry_user_bp
 from Routes.enquiryAdminRoutes import enquiry_admin_bp
 from Routes.landAdminRoutes import land_admin_bp
 from Routes.imageUploadRoutes import image_upload_bp
+from Routes.siteContentRoutes import site_content_bp
 from flask_cors import CORS
 from Utils.CheckAuthorization import CheckAuthorization
 
@@ -45,6 +46,7 @@ def check_auth_token():
         '/api/user/enquiries/available-lands',  # Public land browsing
         '/api/user/enquiries/guest-enquiry',  # Guest enquiry submission
         '/api/user/enquiries/land',  # Land details via query param (?id=)
+        '/api/public/landing',  # Public landing page content
         '/health'  # Health check
     ]
 
@@ -85,6 +87,7 @@ app.register_blueprint(enquiry_user_bp)  # Already has url_prefix in blueprint
 app.register_blueprint(enquiry_admin_bp)  # Already has url_prefix in blueprint
 app.register_blueprint(land_admin_bp, url_prefix='/api/admin/lands')
 app.register_blueprint(image_upload_bp)  # Already has url_prefix in blueprint
+app.register_blueprint(site_content_bp, url_prefix='/api')
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
