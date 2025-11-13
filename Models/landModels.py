@@ -60,9 +60,9 @@ class Land(Document):
             "longitude": self.longitude,
             "is_urgent": bool(self.is_urgent),
             "urgent_priority": self.urgent_priority,
-            "urgent_title": self.urgent_title or self.title,
-            "urgent_description": self.urgent_description,
-            "urgent_image_url": self.urgent_image_url or ((self.images_urls[0]) if (self.images_urls and len(self.images_urls)>0) else None),
+            # "urgent_title": self.urgent_title or self.title,
+            # "urgent_description": self.urgent_description,
+            # "urgent_image_url": self.urgent_image_url or ((self.images_urls[0]) if (self.images_urls and len(self.images_urls)>0) else None),
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }

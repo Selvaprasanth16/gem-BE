@@ -91,6 +91,9 @@ class UserController:
             user.username = data.get('username', user.username)
             user.email = data.get('email', user.email)
             user.full_name = data.get('full_name', user.full_name)
+            # Allow updating optional phone
+            if 'phone' in data:
+                user.phone = data.get('phone')
 
             user.save()
 

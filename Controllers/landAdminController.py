@@ -131,9 +131,6 @@ class LandAdminController:
                 # urgent
                 'is_urgent': True if (str(data.get('is_urgent')).lower() in ['true','1','yes']) else False,
                 'urgent_priority': int(data.get('urgent_priority', 0) or 0),
-                'urgent_title': data.get('urgent_title'),
-                'urgent_description': data.get('urgent_description'),
-                'urgent_image_url': data.get('urgent_image_url'),
                 'created_at': datetime.utcnow(),
                 'updated_at': datetime.utcnow()
             }
@@ -333,12 +330,6 @@ class LandAdminController:
                     land.urgent_priority = int(data.get('urgent_priority'))
                 except Exception:
                     pass
-            if 'urgent_title' in data:
-                land.urgent_title = data.get('urgent_title')
-            if 'urgent_description' in data:
-                land.urgent_description = data.get('urgent_description')
-            if 'urgent_image_url' in data:
-                land.urgent_image_url = data.get('urgent_image_url')
             # Coordinates parsing for update
             def parse_coordinates(val):
                 try:
